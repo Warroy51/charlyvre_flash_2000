@@ -2,13 +2,13 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/x-icon" href="./img/pdv.png">
     <title>CHARLY-VRE FLASH 2000</title>
     <style>
         body {
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             background-color: #2c3e50;
             font-family: 'Arial', sans-serif;
             display: flex;
@@ -16,7 +16,7 @@
             align-items: center;
             min-height: 100vh;
             color: white;
-            overflow: hidden;
+            box-sizing: border-box;
         }
 
         .game-container {
@@ -25,7 +25,9 @@
             padding: 20px;
             border-radius: 15px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.6);
-            gap: 30px;
+            gap: 20px;
+            max-width: 100%;
+            align-items: center;
         }
 
         canvas {
@@ -37,6 +39,9 @@
             will-change: filter;
             transform: translateZ(0);
             backface-visibility: hidden;
+            max-width: 100%;
+            height: auto;
+            touch-action: none; /* Empêche le scroll de la page au touch */
         }
 
         .sidebar {
@@ -135,6 +140,24 @@
         .leaderboard tr:nth-child(even) {
             background-color: #34495e;
         }
+
+        /* --- RESPONSIVE MOBILE & TABLETTE --- */
+        @media (max-width: 1050px) {
+            body {
+                overflow-y: auto;
+                align-items: flex-start;
+            }
+            .game-container {
+                flex-direction: column-reverse; /* Met la sidebar sous le canvas sur mobile */
+                width: 100%;
+                padding: 10px;
+                box-sizing: border-box;
+            }
+            .sidebar {
+                width: 100%;
+                max-width: 400px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -204,20 +227,38 @@ let spawnRate = 120;
 // Panier réajusté pour coller visuellement aux proportions de l'image
 const basket = {
     x: 500 - 90,
-    y: 700 - 60, // Un peu plus haut pour accueillir la hauteur du panier en osier
+    y: 700 - 60, 
     width: 180, 
-    height: 50,  // Hauteur augmentée pour correspondre au PNG
+    height: 50,  
 };
 
-window.addEventListener('mousemove', (e) => {
+// Fonction commune pour déplacer le panier (gère souris et touch)
+function handleMove(clientX) {
     if (gameOver) return;
     const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
+    
+    // Calcul de la position relative par rapport au redimensionnement CSS du canvas
+    const scaleX = canvas.width / rect.width; 
+    const mouseX = (clientX - rect.left) * scaleX;
     
     basket.x = mouseX - basket.width / 2;
     if (basket.x < 0) basket.x = 0;
     if (basket.x > canvas.width - basket.width) basket.x = canvas.width - basket.width;
+}
+
+// Événement Souris
+window.addEventListener('mousemove', (e) => {
+    handleMove(e.clientX);
 });
+
+// Événements Tactiles (Smartphone)
+canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 0) handleMove(e.touches[0].clientX);
+}, { passive: true });
+
+canvas.addEventListener('touchmove', (e) => {
+    if (e.touches.length > 0) handleMove(e.touches[0].clientX);
+}, { passive: true });
 
 function spawnBeer() {
     const size = 70; 
@@ -225,7 +266,7 @@ function spawnBeer() {
         x: Math.random() * (canvas.width - size),
         y: -size,
         width: size,
-        height: size, // Format carré classique pour l'icône
+        height: size, 
         speed: currentSpeed + Math.random() * 0.4 
     });
 }
@@ -304,10 +345,10 @@ function gameLoop() {
         
         // --- RENDU DE L'IMAGE DE GAME OVER ---
         if (gameOverImg.complete) {
-            const imgWidth = 250;  // Largeur de l'image de Game Over
-            const imgHeight = 250; // Hauteur de l'image de Game Over
+            const imgWidth = 250;  
+            const imgHeight = 250; 
             const imgX = canvas.width / 2 - imgWidth / 2;
-            const imgY = canvas.height / 2 - 180; // Positionnée au-dessus du texte "Couché !"
+            const imgY = canvas.height / 2 - 180; 
             ctx.drawImage(gameOverImg, imgX, imgY, imgWidth, imgHeight);
         }
 
@@ -331,7 +372,6 @@ function gameLoop() {
     if (basketImg.complete) {
         ctx.drawImage(basketImg, basket.x, basket.y, basket.width, basket.height);
     } else {
-        // Secours si l'image charge lentement
         ctx.fillStyle = '#e67e22';
         ctx.fillRect(basket.x, basket.y + 20, basket.width, basket.height - 20);
     }
@@ -352,12 +392,11 @@ function gameLoop() {
         if (beerImg.complete) {
             ctx.drawImage(beerImg, b.x, b.y, b.width, b.height);
         } else {
-            // Secours jaune si l'image charge lentement
             ctx.fillStyle = '#f1c40f'; 
             ctx.fillRect(b.x, b.y, b.width, b.height);
         }
 
-        // Collision réussie (ajustée légèrement sur le haut du panier pour être plus réaliste)
+        // Collision réussie
         if (b.y + b.height >= basket.y + 10 && 
             b.y <= basket.y + basket.height &&
             b.x + b.width >= basket.x && 
@@ -388,19 +427,17 @@ function gameLoop() {
     ctx.fillText(`Score : ${score}`, 25, 40);
 
     // --- UI : RENDU DES VIES EN PNG (HAUT DROITE) ---
-    const lifeSize = 50; // Taille des icônes de vie
-    const paddingRight = 25; // Marge depuis le bord droit du canvas
-    const spacing = 10; // Espace entre chaque cœur
+    const lifeSize = 50; 
+    const paddingRight = 25; 
+    const spacing = 10; 
 
     if (lifeImg.complete) {
         for (let l = 0; l < lives; l++) {
-            // Calcule la position X de chaque cœur pour les aligner de droite à gauche
             let lifeX = canvas.width - paddingRight - lifeSize - (l * (lifeSize + spacing));
-            let lifeY = 18; // Aligné verticalement avec le texte du score
+            let lifeY = 18; 
             ctx.drawImage(lifeImg, lifeX, lifeY, lifeSize, lifeSize);
         }
     } else {
-        // Rendu de secours textuel au cas où le PNG met du temps à se charger
         ctx.fillStyle = '#e74c3c';
         ctx.font = '22px Arial';
         ctx.textAlign = 'right';
