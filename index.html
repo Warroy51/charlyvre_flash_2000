@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/x-icon" href="./png/pdv.png">
+    <link rel="icon" type="image/x-icon" href="./img/pdv.png">
     <title>CHARLY-VRE FLASH 2000</title>
     <style>
         body {
@@ -145,7 +145,7 @@
     <div class="sidebar">
         <h2>Niveau de ravagistrement</h2>
         <div id="state-text">Sobre 😇</div>
-        <img id="dynamic-img" src="./png/chic.jpg" alt="Statut" class="status-image">
+        <img id="dynamic-img" src="./img/etape1.jpg" alt="Statut" class="status-image">
         
         <div id="save-score-container">
             <span style="color: #f1c40f; font-weight: bold; display: block; margin-bottom: 5px;">Sauvegarder le score</span>
@@ -180,16 +180,16 @@ const leaderboardBody = document.getElementById('leaderboard-body');
 
 // --- CHARGEMENT DES IMAGES PNG ---
 const beerImg = new Image();
-beerImg.src = './png/pilsner.png'; 
+beerImg.src = './img/biere.png'; 
 
 const basketImg = new Image();
-basketImg.src = 'https://i.postimg.cc/g2g6mFdB/basket-pixel.png'; //TODO Charly PNG
+basketImg.src = './img/basket.jpg';
 
 const lifeImg = new Image();
-lifeImg.src = './png/pdv.png'; 
+lifeImg.src = './img/pdv.png'; 
 
 const gameOverImg = new Image();
-gameOverImg.src = './png/dodo.jpg';
+gameOverImg.src = './img/gameover.jpg';
 
 // Variables de jeu
 let score = 0;
@@ -233,23 +233,27 @@ function spawnBeer() {
 function updateEffects() {
     if (score < 10) {
         stateText.innerText = "Sobre 😇";
-        dynamicImg.src = "./png/chic.jpg";
+        dynamicImg.src = "./img/etape1.jpg";
         canvas.style.filter = "none";
     } else if (score >= 10 && score < 22) {
         stateText.innerText = "Sous 8-6 🥴";
-        dynamicImg.src = "./png/torsepoil.jpg";
+        dynamicImg.src = "./img/etape2.jpg";
         canvas.style.filter = "blur(1.5px)";
     } else if (score >= 22 && score < 40) {
         stateText.innerText = "J'pète ma bière... MA LOUBELULE 🍻";
-        dynamicImg.src = "./png/saucisson.jpg";
+        dynamicImg.src = "./img/etape3.jpg";
         canvas.style.filter = "blur(3.5px)";
     } else if (score >= 40 && score < 69) {
-        stateText.innerText = "RC des champions ! 👑";
-        dynamicImg.src = "./png/piscineboule.jpg";
+        stateText.innerText = "Apprenti Rage cageur 👑";
+        dynamicImg.src = "./img/etape4.jpg";
+        canvas.style.filter = "blur(5.5px)";
+    } else if (score >= 69 && score < 100) {
+        stateText.innerText = "Membre de la FIRC 👑";
+        dynamicImg.src = "./img/etape5.jpg";
         canvas.style.filter = "blur(5.5px)";
     } else {
         stateText.innerText = "👑 MAITRE ALCOOL 👑";
-        dynamicImg.src = "./png/ninja.jpg";
+        dynamicImg.src = "./img/etape6.jpg";
         canvas.style.filter = "blur(5.5px)";
     }
 
