@@ -41,7 +41,7 @@
             backface-visibility: hidden;
             max-width: 100%;
             height: auto;
-            touch-action: none; /* Empêche le scroll de la page au touch */
+            touch-action: none;
         }
 
         .sidebar {
@@ -148,14 +148,22 @@
                 align-items: flex-start;
             }
             .game-container {
-                flex-direction: column-reverse; /* Met la sidebar sous le canvas sur mobile */
+                flex-direction: column; /* Le jeu reste en haut, l'interface descend */
                 width: 100%;
                 padding: 10px;
                 box-sizing: border-box;
+                gap: 15px;
+            }
+            canvas {
+                /* Force le jeu à prendre plus de hauteur visible sur mobile tout en restant proportionnel */
+                max-height: 70vh; 
+                width: auto;
+                aspect-ratio: 1000 / 700;
             }
             .sidebar {
                 width: 100%;
-                max-width: 400px;
+                max-width: 450px;
+                margin-top: 5px;
             }
         }
     </style>
