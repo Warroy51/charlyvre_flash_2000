@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="./png/pdv.png">
+    <title>CHARLY-VRE FLASH 2000</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #2c3e50;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+            overflow: hidden;
+        }
+
+        .game-container {
+            display: flex;
+            background-color: #34495e;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+            gap: 30px;
+        }
+
+        canvas {
+            background-color: #1a252f;
+            border: 4px solid #f1c40f;
+            border-radius: 8px;
+            cursor: none; 
+            transition: filter 0.4s ease;
+            will-change: filter;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+        }
+
+        .sidebar {
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            text-align: center;
+        }
+
+        .sidebar h2 {
+            margin: 0 0 10px 0;
+            color: #f1c40f;
+            font-size: 1.6rem;
+        }
+
+        .status-image {
+            width: 220px;
+            height: 220px;
+            object-fit: cover;
+            border-radius: 12px;
+            border: 4px solid #fff;
+            margin-bottom: 10px;
+        }
+
+        #state-text {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 15px;
+        }
+
+        #save-score-container {
+            display: none; 
+            background: #1a252f;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #f1c40f;
+            margin-bottom: 15px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        #save-score-container input {
+            padding: 8px;
+            width: 80%;
+            border: none;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        #save-score-container button {
+            padding: 8px 15px;
+            background-color: #f1c40f;
+            color: #1a252f;
+            border: none;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        #save-score-container button:hover {
+            background-color: #f39c12;
+        }
+
+        .leaderboard {
+            width: 100%;
+            background: #2c3e50;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #bdc3c7;
+            box-sizing: border-box;
+        }
+
+        .leaderboard h3 {
+            margin: 0 0 10px 0;
+            color: #f1c40f;
+            font-size: 1.1rem;
+        }
+
+        .leaderboard table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .leaderboard th, .leaderboard td {
+            padding: 6px;
+            text-align: left;
+        }
+
+        .leaderboard tr:nth-child(even) {
+            background-color: #34495e;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <canvas id="gameCanvas" width="1000" height="700"></canvas>
+
+    <div class="sidebar">
+        <h2>Niveau de ravagistrement</h2>
+        <div id="state-text">Sobre 😇</div>
+        <img id="dynamic-img" src="./png/chic.jpg" alt="Statut" class="status-image">
+        
+        <div id="save-score-container">
+            <span style="color: #f1c40f; font-weight: bold; display: block; margin-bottom: 5px;">Sauvegarder le score</span>
+            <input type="text" id="username-input" placeholder="Ton Pseudo" maxlength="12">
+            <button id="save-btn">OK</button>
+        </div>
+
+        <div class="leaderboard">
+            <h3>🏆 Top 5 Scores</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th style="text-align: right;">Bières</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const dynamicImg = document.getElementById('dynamic-img');
+const stateText = document.getElementById('state-text');
+const saveContainer = document.getElementById('save-score-container');
+const usernameInput = document.getElementById('username-input');
+const saveBtn = document.getElementById('save-btn');
+const leaderboardBody = document.getElementById('leaderboard-body');
+
+// --- CHARGEMENT DES IMAGES PNG ---
+const beerImg = new Image();
+beerImg.src = './png/pilsner.png'; 
+
+const basketImg = new Image();
+basketImg.src = 'https://i.postimg.cc/g2g6mFdB/basket-pixel.png'; //TODO Charly PNG
+
+const lifeImg = new Image();
+lifeImg.src = './png/pdv.png'; 
+
+const gameOverImg = new Image();
+gameOverImg.src = './png/dodo.jpg';
+
+// Variables de jeu
+let score = 0;
+let lives = 3; 
+let gameOver = false;
+let beers = [];
+let spawnTimer = 0;
+
+let currentSpeed = 1.6; 
+let spawnRate = 120; 
+
+// Panier réajusté pour coller visuellement aux proportions de l'image
+const basket = {
+    x: 500 - 90,
+    y: 700 - 60, // Un peu plus haut pour accueillir la hauteur du panier en osier
+    width: 180, 
+    height: 50,  // Hauteur augmentée pour correspondre au PNG
+};
+
+window.addEventListener('mousemove', (e) => {
+    if (gameOver) return;
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    
+    basket.x = mouseX - basket.width / 2;
+    if (basket.x < 0) basket.x = 0;
+    if (basket.x > canvas.width - basket.width) basket.x = canvas.width - basket.width;
+});
+
+function spawnBeer() {
+    const size = 70; 
+    beers.push({
+        x: Math.random() * (canvas.width - size),
+        y: -size,
+        width: size,
+        height: size, // Format carré classique pour l'icône
+        speed: currentSpeed + Math.random() * 0.4 
+    });
+}
+
+function updateEffects() {
+    if (score < 10) {
+        stateText.innerText = "Sobre 😇";
+        dynamicImg.src = "./png/chic.jpg";
+        canvas.style.filter = "none";
+    } else if (score >= 10 && score < 22) {
+        stateText.innerText = "Sous 8-6 🥴";
+        dynamicImg.src = "./png/torsepoil.jpg";
+        canvas.style.filter = "blur(1.5px)";
+    } else if (score >= 22 && score < 40) {
+        stateText.innerText = "J'pète ma bière... MA LOUBELULE 🍻";
+        dynamicImg.src = "./png/saucisson.jpg";
+        canvas.style.filter = "blur(3.5px)";
+    } else if (score >= 40 && score < 69) {
+        stateText.innerText = "RC des champions ! 👑";
+        dynamicImg.src = "./png/piscineboule.jpg";
+        canvas.style.filter = "blur(5.5px)";
+    } else {
+        stateText.innerText = "👑 MAITRE ALCOOL 👑";
+        dynamicImg.src = "./png/ninja.jpg";
+        canvas.style.filter = "blur(5.5px)";
+    }
+
+    currentSpeed = 1.6 + (score * 0.08); 
+    spawnRate = Math.max(30, 120 - (score * 1.8)); 
+}
+
+function loadLeaderboard() {
+    const scores = JSON.parse(localStorage.getItem('beerScores')) || [];
+    leaderboardBody.innerHTML = '';
+    
+    if (scores.length === 0) {
+        leaderboardBody.innerHTML = '<tr><td colspan="2" style="color:#bdc3c7; text-align:center;">Aucun score</td></tr>';
+        return;
+    }
+
+    scores.forEach(s => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${s.name}</td><td style="text-align: right; font-weight: bold; color: #f1c40f;">${s.score}</td>`;
+        leaderboardBody.appendChild(row);
+    });
+}
+
+function saveScore() {
+    const name = usernameInput.value.trim() || "Anonyme";
+    let scores = JSON.parse(localStorage.getItem('beerScores')) || [];
+    
+    scores.push({ name: name, score: score });
+    scores.sort((a, b) => b.score - a.score);
+    scores = scores.slice(0, 5);
+    
+    localStorage.setItem('beerScores', JSON.stringify(scores));
+    saveContainer.style.display = 'none'; 
+    loadLeaderboard(); 
+}
+
+saveBtn.addEventListener('click', saveScore);
+
+document.getElementById('username-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') saveScore();
+});
+
+function gameLoop() {
+    if (gameOver) {
+        canvas.style.filter = "none";
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // --- RENDU DE L'IMAGE DE GAME OVER ---
+        if (gameOverImg.complete) {
+            const imgWidth = 250;  // Largeur de l'image de Game Over
+            const imgHeight = 250; // Hauteur de l'image de Game Over
+            const imgX = canvas.width / 2 - imgWidth / 2;
+            const imgY = canvas.height / 2 - 180; // Positionnée au-dessus du texte "Couché !"
+            ctx.drawImage(gameOverImg, imgX, imgY, imgWidth, imgHeight);
+        }
+
+        ctx.fillStyle = '#f1c40f';
+        ctx.font = 'bold 45px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText("Couché !", canvas.width / 2, canvas.height / 2 + 110);
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '22px Arial';
+        ctx.fillText(`Score final : ${score} bières`, canvas.width / 2, canvas.height / 2 + 160);
+        
+        ctx.font = 'italic 16px Arial';
+        ctx.fillText("Clique sur l'écran noir pour rejouer !", canvas.width / 2, canvas.height / 2 + 220);
+        return;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // --- RENDU DU PANIER PNG ---
+    if (basketImg.complete) {
+        ctx.drawImage(basketImg, basket.x, basket.y, basket.width, basket.height);
+    } else {
+        // Secours si l'image charge lentement
+        ctx.fillStyle = '#e67e22';
+        ctx.fillRect(basket.x, basket.y + 20, basket.width, basket.height - 20);
+    }
+
+    // Horloge d'apparition
+    spawnTimer++;
+    if (spawnTimer >= spawnRate) {
+        spawnBeer();
+        spawnTimer = 0;
+    }
+
+    // Gestion des bières
+    for (let i = beers.length - 1; i >= 0; i--) {
+        let b = beers[i];
+        b.y += b.speed; 
+
+        // --- RENDU DE LA BIÈRE PNG ---
+        if (beerImg.complete) {
+            ctx.drawImage(beerImg, b.x, b.y, b.width, b.height);
+        } else {
+            // Secours jaune si l'image charge lentement
+            ctx.fillStyle = '#f1c40f'; 
+            ctx.fillRect(b.x, b.y, b.width, b.height);
+        }
+
+        // Collision réussie (ajustée légèrement sur le haut du panier pour être plus réaliste)
+        if (b.y + b.height >= basket.y + 10 && 
+            b.y <= basket.y + basket.height &&
+            b.x + b.width >= basket.x && 
+            b.x <= basket.x + basket.width) {
+            
+            score++;
+            beers.splice(i, 1);
+            updateEffects();
+            continue;
+        }
+
+        // Bière perdue (Touche le sol)
+        if (b.y > canvas.height) {
+            beers.splice(i, 1);
+            lives--; 
+            
+            if (lives <= 0) {
+                gameOver = true;
+                saveContainer.style.display = 'block'; 
+            }
+        }
+    }
+
+    // UI : Score
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(`Score : ${score}`, 25, 40);
+
+    // --- UI : RENDU DES VIES EN PNG (HAUT DROITE) ---
+    const lifeSize = 50; // Taille des icônes de vie
+    const paddingRight = 25; // Marge depuis le bord droit du canvas
+    const spacing = 10; // Espace entre chaque cœur
+
+    if (lifeImg.complete) {
+        for (let l = 0; l < lives; l++) {
+            // Calcule la position X de chaque cœur pour les aligner de droite à gauche
+            let lifeX = canvas.width - paddingRight - lifeSize - (l * (lifeSize + spacing));
+            let lifeY = 18; // Aligné verticalement avec le texte du score
+            ctx.drawImage(lifeImg, lifeX, lifeY, lifeSize, lifeSize);
+        }
+    } else {
+        // Rendu de secours textuel au cas où le PNG met du temps à se charger
+        ctx.fillStyle = '#e74c3c';
+        ctx.font = '22px Arial';
+        ctx.textAlign = 'right';
+        let fallbackHearts = "".padStart(lives, "❤️");
+        ctx.fillText(fallbackHearts || "☠️", canvas.width - 25, 40);
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+canvas.addEventListener('click', () => {
+    if (gameOver) {
+        score = 0;
+        lives = 3;
+        beers = [];
+        currentSpeed = 1.6;
+        spawnRate = 120;
+        gameOver = false;
+        saveContainer.style.display = 'none'; 
+        updateEffects();
+        gameLoop();
+    }
+});
+
+loadLeaderboard();
+gameLoop();
+</script>
+
+</body>
+</html>
